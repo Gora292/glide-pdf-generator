@@ -1,0 +1,25 @@
+{
+  "name": "Générateur de PDF",
+  "description": "Crée un PDF personnalisé avec logo, titre et texte.",
+  "author": "Gora292",
+  "params": [
+    {
+      "name": "logoBase64",
+      "displayName": "Logo (Base64)",
+      "type": "string"
+    },
+    {
+      "name": "docTitle",
+      "displayName": "Titre du document",
+      "type": "string"
+    },
+    {
+      "name": "bodyText",
+      "displayName": "Texte du corps",
+      "type": "string"
+    }
+  ],
+  "result": {
+    "type": "string"
+  }
+}
