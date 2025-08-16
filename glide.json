@@ -1,6 +1,6 @@
 {
-  "name": "Générateur de PDF",
-  "description": "Crée un PDF personnalisé avec logo, titre et texte. Gère la compression d'image.",
+  "name": "Générateur de PDF depuis HTML",
+  "description": "Crée un PDF personnalisé en interprétant du contenu HTML pour le corps du document.",
   "author": "Gora292",
   "params": [
     {
@@ -14,8 +14,8 @@
       "type": "string"
     },
     {
-      "name": "bodyText",
-      "displayName": "Texte du corps",
+      "name": "bodyHtml",
+      "displayName": "Corps du document (HTML)",
       "type": "string"
     }
   ],
