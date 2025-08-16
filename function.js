@@ -1,91 +1,118 @@
-// function.js - Version avec gestion d'erreurs
+// function.js - Version finale avec pdf-lib
 
-async function compressAndResizeImage(url, maxWidth = 150, quality = 0.7) {
+// La fonction pour charger les images reste la même
+async function fetchAndCompressImage(url, maxWidth = 150, quality = 0.7) {
     if (!url) return null;
-    return new Promise((resolve) => {
-        const img = new Image();
-        img.crossOrigin = 'Anonymous';
-        img.src = url;
-        img.onload = () => {
+    return new Promise(async (resolve) => {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Network response was not ok');
+            const blob = await response.blob();
+
+            const imageBitmap = await createImageBitmap(blob);
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            const ratio = img.width / img.height;
-            const newWidth = Math.min(img.width, maxWidth);
+            const ratio = imageBitmap.width / imageBitmap.height;
+            const newWidth = Math.min(imageBitmap.width, maxWidth);
             const newHeight = newWidth / ratio;
+
             canvas.width = newWidth;
             canvas.height = newHeight;
-            ctx.drawImage(img, 0, 0, newWidth, newHeight);
-            resolve(canvas.toDataURL('image/jpeg', quality));
-        };
-        // Si l'image ne se charge pas (erreur CORS, lien cassé...), on continue sans logo
-        img.onerror = () => {
-            console.error("Erreur de chargement de l'image : " + url);
+            ctx.drawImage(imageBitmap, 0, 0, newWidth, newHeight);
+
+            // Retourne les bytes de l'image JPEG
+            canvas.toBlob(resolve, 'image/jpeg', quality);
+        } catch (error) {
+            console.error("Erreur de chargement de l'image:", error);
             resolve(null);
-        };
+        }
     });
 }
 
-// Fonction de chargement de script améliorée
+
+// Fonction de chargement de script
 function loadScript(url) {
     return new Promise((resolve, reject) => {
-        if (document.querySelector(`script[src="${url}"]`)) {
+        if (self[url]) { // Vérifie si le script est déjà chargé
             return resolve();
         }
-        const script = document.createElement('script');
-        script.src = url;
-        script.onload = resolve;
-        script.onerror = () => reject(new Error(`Impossible de charger le script : ${url}`));
-        document.head.appendChild(script);
+        importScripts(url);
+        self[url] = true;
+        resolve();
     });
 }
 
-// === FONCTION PRINCIPALE ===
-async function generatePdf(logoUrl, docTitle, bodyHtml) {
+// === FONCTION PRINCIPALE avec pdf-lib ===
+async function generatePdf(logoUrl, docTitle, bodyText) {
     try {
-        // 1. Chargement des librairies
-        await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
-        await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
-        const { jsPDF } = window.jspdf;
+        // 1. Chargement de la librairie pdf-lib
+        await loadScript("https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js");
+        const { PDFDocument, rgb, StandardFonts } = PDFLib;
 
-        const doc = new jsPDF();
-        const pageWidth = doc.internal.pageSize.getWidth();
+        // 2. Création d'un document PDF
+        const pdfDoc = await PDFDocument.create();
+        const page = pdfDoc.addPage();
+        const { width, height } = page.getSize();
+        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+        let y = height - 50;
 
-        // 2. Traitement du logo
+        // 3. Traitement du logo
         if (logoUrl && logoUrl.value) {
-            const logoBase64 = await compressAndResizeImage(logoUrl.value);
-            if (logoBase64) {
-                const logoWidth = 40;
-                const logoHeight = 15;
-                const logoX = pageWidth - logoWidth - 15;
-                doc.addImage(logoBase64, 'JPEG', logoX, 15, logoWidth, logoHeight);
+            const imageBlob = await fetchAndCompressImage(logoUrl.value);
+            if (imageBlob) {
+                const imageBytes = new Uint8Array(await imageBlob.arrayBuffer());
+                const pdfImage = await pdfDoc.embedJpg(imageBytes);
+                const imageDims = pdfImage.scale(0.25); // Réduit la taille de l'image de 75%
+                page.drawImage(pdfImage, {
+                    x: width - imageDims.width - 50,
+                    y: height - imageDims.height - 40,
+                    width: imageDims.width,
+                    height: imageDims.height,
+                });
             }
         }
-
-        // 3. Ajout du titre
-        doc.setFontSize(28);
-        doc.setFont("helvetica", "bold");
-        doc.text(docTitle.value || "Titre par défaut", 15, 25);
-
-        // 4. Conversion du HTML en PDF
-        const htmlContainer = document.createElement('div');
-        htmlContainer.style.width = '180mm'; // Largeur A4 moins les marges
-        htmlContainer.innerHTML = bodyHtml.value || "<p>Aucun contenu HTML fourni.</p>";
         
-        // C'est l'étape la plus susceptible d'échouer.
-        await doc.html(htmlContainer, {
-            x: 10,
-            y: 50, // Espace pour l'en-tête
-            // Laisser jsPDF gérer la suite
+        // 4. Ajout du titre
+        page.drawText(docTitle.value || 'Titre par défaut', {
+            x: 50,
+            y: y,
+            font: boldFont,
+            size: 24,
+            color: rgb(0, 0, 0),
+        });
+        y -= 50; // Déplace le curseur vers le bas
+
+        // 5. Ajout du corps du texte
+        const text = bodyText.value || 'Aucun contenu fourni.';
+        page.drawText(text, {
+            x: 50,
+            y: y,
+            font: font,
+            size: 12,
+            lineHeight: 18,
+            maxWidth: width - 100, // Marges de 50px de chaque côté
+            color: rgb(0.1, 0.1, 0.1),
         });
 
-        // 5. Retourner le PDF généré
-        return doc.output('datauristring');
+        // 6. Finalisation du PDF et conversion
+        const pdfBytes = await pdfDoc.save();
+        
+        // Conversion des bytes en chaîne Base64 que Glide peut lire
+        let binary = '';
+        const len = pdfBytes.byteLength;
+        for (let i = 0; i < len; i++) {
+            binary += String.fromCharCode(pdfBytes[i]);
+        }
+        const base64String = self.btoa(binary);
+
+        return 'data:application/pdf;base64,' + base64String;
 
     } catch (error) {
-        // Si une erreur se produit à n'importe quelle étape, on la retourne comme résultat.
         console.error("Erreur lors de la génération du PDF:", error);
         return `ERREUR : ${error.message}`;
     }
 }
 
-window.function = generatePdf;
+// L'assignation de la fonction change légèrement dans ce contexte
+self.function = generatePdf;
