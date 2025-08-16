@@ -1,21 +1,41 @@
 {
-  "name": "Générateur de PDF (Robuste)",
-  "description": "Crée un PDF personnalisé avec logo et texte simple. Conçu pour éviter les erreurs de sécurité.",
+  "name": "Générateur de Facture Pro",
+  "description": "Crée une facture PDF professionnelle à partir de données structurées.",
   "author": "Gora292",
   "params": [
     {
       "name": "logoUrl",
-      "displayName": "Logo (URL)",
+      "displayName": "Logo de l'entreprise (URL)",
       "type": "string"
     },
     {
-      "name": "docTitle",
-      "displayName": "Titre du document",
+      "name": "companyInfo",
+      "displayName": "Infos de votre entreprise (multi-lignes)",
       "type": "string"
     },
     {
-      "name": "bodyText",
-      "displayName": "Corps du document (Texte)",
+      "name": "customerInfo",
+      "displayName": "Infos du client (multi-lignes)",
+      "type": "string"
+    },
+    {
+      "name": "invoiceNumber",
+      "displayName": "Numéro de facture",
+      "type": "string"
+    },
+    {
+      "name": "invoiceDate",
+      "displayName": "Date de la facture",
+      "type": "string"
+    },
+    {
+      "name": "itemsJson",
+      "displayName": "Lignes de produits (JSON)",
+      "type": "string"
+    },
+    {
+      "name": "notes",
+      "displayName": "Notes (ex: conditions de paiement)",
       "type": "string"
     }
   ],
