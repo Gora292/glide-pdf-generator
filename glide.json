@@ -1,6 +1,6 @@
 {
-  "name": "Générateur de PDF depuis HTML",
-  "description": "Crée un PDF personnalisé en interprétant du contenu HTML pour le corps du document.",
+  "name": "Générateur de PDF (Robuste)",
+  "description": "Crée un PDF personnalisé avec logo et texte simple. Conçu pour éviter les erreurs de sécurité.",
   "author": "Gora292",
   "params": [
     {
@@ -14,8 +14,8 @@
       "type": "string"
     },
     {
-      "name": "bodyHtml",
-      "displayName": "Corps du document (HTML)",
+      "name": "bodyText",
+      "displayName": "Corps du document (Texte)",
       "type": "string"
     }
   ],
